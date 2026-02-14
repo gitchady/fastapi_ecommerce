@@ -13,6 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.users import User as UserModel
 from app.auth import get_current_seller
 
+
+
 router = APIRouter(prefix="/products", tags=["products"])
 
 
