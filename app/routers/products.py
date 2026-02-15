@@ -1,14 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, update
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.products import Product as ProductModel
 from app.models.categories import Category as CategoryModel
 from app.schemas import Product as ProductSchema, ProductCreate
-from app.db_depends import get_db
 
 from app.db_depends import get_async_db
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.users import User as UserModel
 from app.auth import get_current_seller
@@ -42,7 +40,12 @@ async def create_product(
     )
     if not category_result.first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Category not found or inactive")
-    db_product = ProductModel(**product.model_dump(), seller_id=current_user.id)
+    if product.seller_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="seller_id must match the authenticated seller",
+        )
+    db_product = ProductModel(**product.model_dump(exclude={"seller_id"}), seller_id=current_user.id)
     db.add(db_product)
     await db.commit()
     await db.refresh(db_product)  # Для получения id и is_active из базы
@@ -101,13 +104,18 @@ async def update_product(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
     if db_product.seller_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only update your own products")
+    if product.seller_id != db_product.seller_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Changing seller_id is not allowed",
+        )
     category_result = await db.scalars(
         select(CategoryModel).where(CategoryModel.id == product.category_id, CategoryModel.is_active == True)
     )
     if not category_result.first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Category not found or inactive")
     await db.execute(
-        update(ProductModel).where(ProductModel.id == product_id).values(**product.model_dump())
+        update(ProductModel).where(ProductModel.id == product_id).values(**product.model_dump(exclude={"seller_id"}))
     )
     await db.commit()
     await db.refresh(db_product)  # Для консистентности данных
