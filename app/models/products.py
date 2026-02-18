@@ -1,5 +1,6 @@
+from datetime import datetime
 from decimal import Decimal
-from sqlalchemy import String, Boolean, Integer, Numeric ,Float ,Text , text
+from sqlalchemy import DateTime, String, Boolean, Integer, Numeric ,Float ,Text, func , text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 
@@ -19,6 +20,9 @@ class Product(Base):
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"), nullable=False)
     seller_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)  # New
     rating: Mapped[float] = mapped_column(Float, default=0.0, nullable=False, server_default=text("0"))  # Средний рейтинг
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),server_default=func.now(), onupdate=func.now(), nullable=False)
+
 
     category: Mapped["Category"] = relationship("Category", back_populates="products")
     seller: Mapped["User"] = relationship("User", back_populates="products")  # New

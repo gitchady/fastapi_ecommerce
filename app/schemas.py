@@ -71,6 +71,9 @@ class Product(BaseModel):
     seller_id: int = Field(..., description="ID продавца (users.id)")
     is_active: bool = Field(..., description="Активность товара")
     rating: float = Field(..., ge=0, le=5, description="Рейтинг товара (0-5)")
+    created_at: datetime = Field(..., description="Дата и время создания товара")
+    updated_at: datetime = Field(..., description="Дата и время последнего обновления товара")
+
 
     model_config = ConfigDict(from_attributes=True)
 

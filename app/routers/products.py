@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +22,14 @@ router = APIRouter(prefix="/products", tags=["products"])
 async def get_all_products(
         page: int = Query(1, ge=1),
         page_size: int = Query(20, ge=1, le=100),
+        sort_by: Literal["id", "created_at"] = Query(
+            "id",
+            description="Поле для сортировки (id | created_at)",
+        ),
+        sort_dir: Literal["asc", "desc"] = Query(
+            "asc",
+            description="Направление сортировки (asc | desc)",
+        ),
         category_id: int | None = Query(
             None, description="ID категории для фильтрации"),
         min_price: float | None = Query(
@@ -55,16 +65,26 @@ async def get_all_products(
         filters.append(ProductModel.stock > 0 if in_stock else ProductModel.stock == 0)
     if seller_id is not None:
         filters.append(ProductModel.seller_id == seller_id)
+    
 
     # Подсчёт общего количества с учётом фильтров
     total_stmt = select(func.count()).select_from(ProductModel).where(*filters)
     total = await db.scalar(total_stmt) or 0
 
+    if sort_by == "created_at":
+        order_by = (
+            (ProductModel.created_at.desc(), ProductModel.id.desc())
+            if sort_dir == "desc"
+            else (ProductModel.created_at, ProductModel.id)
+        )
+    else:
+        order_by = (ProductModel.id.desc(),) if sort_dir == "desc" else (ProductModel.id,)
+
     # Выборка товаров с фильтрами и пагинацией
     products_stmt = (
         select(ProductModel)
         .where(*filters)
-        .order_by(ProductModel.id)
+        .order_by(*order_by)
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
