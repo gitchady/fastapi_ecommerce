@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-
 from app import models  # noqa: F401
 from app.database import Base, async_engine
 from app.routers import categories, products, reviews, users

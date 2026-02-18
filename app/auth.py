@@ -1,36 +1,54 @@
-from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta, timezone
+import hashlib
 import jwt
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+import bcrypt
 
 from app.models.users import User as UserModel
 from app.config import SECRET_KEY, ALGORITHM
 from app.db_depends import get_async_db
 
 
-# Создаём контекст для хеширования с использованием bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/token")
 
+
+def _prehash_password(password: str) -> bytes:
+    """
+    Bcrypt in `bcrypt>=5` rejects passwords longer than 72 bytes.
+    Pre-hash the UTF-8 password to a fixed length to avoid that limit.
+    """
+    return hashlib.sha256(password.encode("utf-8")).digest()
+
+
 def hash_password(password: str) -> str:
     """
     Преобразует пароль в хеш с использованием bcrypt.
     """
-    return pwd_context.hash(password)
+    hashed = bcrypt.hashpw(_prehash_password(password), bcrypt.gensalt())
+    return hashed.decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Проверяет, соответствует ли введённый пароль сохранённому хешу.
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    hashed_bytes = hashed_password.encode("utf-8")
+
+    try:
+        # Preferred path (new hashes): bcrypt(sha256(password))
+        if bcrypt.checkpw(_prehash_password(plain_password), hashed_bytes):
+            return True
+
+        # Backward-compat (legacy hashes): bcrypt(password)
+        return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_bytes)
+    except ValueError:
+        return False
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme),
