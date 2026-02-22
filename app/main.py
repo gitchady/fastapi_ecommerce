@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app import models  # noqa: F401
 from app.database import Base, async_engine
-from app.routers import categories, products, reviews, users
+from app.routers import categories, products, reviews, users, cart
 
 
 @asynccontextmanager
@@ -24,6 +24,7 @@ app.include_router(categories.router)
 app.include_router(products.router)
 app.include_router(reviews.router)
 app.include_router(users.router)
+app.include_router(cart.router)
 
 
 @app.get("/")
