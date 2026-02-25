@@ -3,7 +3,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app import models  # noqa: F401
 from app.database import Base, async_engine
-from app.routers import categories, products, reviews, users, cart
+from app.routers import categories, products, reviews, users, cart , orders
+from fastapi.staticfiles import StaticFiles
 
 
 @asynccontextmanager
@@ -25,7 +26,9 @@ app.include_router(products.router)
 app.include_router(reviews.router)
 app.include_router(users.router)
 app.include_router(cart.router)
+app.include_router(orders.router)
 
+app.mount("/media", StaticFiles(directory="media"), name="media")
 
 @app.get("/")
 async def root():
