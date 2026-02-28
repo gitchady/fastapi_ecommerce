@@ -173,3 +173,18 @@ async def get_order(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return order
 
+@router.get("{order_id}/status")
+async def get_status(order_id: int, db:AsyncSession= Depends(get_async_db),current_user: UserModel= Depends(get_current_user)):
+    result = await db.scalars(
+        select(OrderModel).where(OrderModel.is_active == True,OrderModel.id == order_id,OrderModel.user_id == current_user.id)
+        )
+    order = result.first()
+    if not order:
+        raise HTTPException(status_code=404,detail="Заказ не найден или вы не являетесь его владельцем")
+    
+    return {        
+  "order_id": order.id,
+  "status": order.status,  
+  "paid_at": order.paid_at, 
+  "message": "Заказ #{order.id} {order.status}."
+}
