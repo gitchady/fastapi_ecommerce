@@ -3,9 +3,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app import models  # noqa: F401
 from app.database import Base, async_engine
-from app.routers import categories, products, reviews, users, cart , orders
 from fastapi.staticfiles import StaticFiles
+from app.routers import cart, categories, orders, payments, products, users ,reviews # ← Новый импорт
 
+
+
+# Остальной код
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -27,6 +30,7 @@ app.include_router(reviews.router)
 app.include_router(users.router)
 app.include_router(cart.router)
 app.include_router(orders.router)
+app.include_router(payments.router) 
 
 app.mount("/media", StaticFiles(directory="media"), name="media")
 

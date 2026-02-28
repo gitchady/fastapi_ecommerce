@@ -40,7 +40,7 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_async_db)
     return db_user
 
 
-@router.post("/token")                                                                # New
+@router.post("/token")                                                             
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_async_db)):
     """
     Аутентифицирует пользователя и возвращает access_token и refresh_token.
