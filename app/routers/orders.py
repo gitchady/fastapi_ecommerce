@@ -10,9 +10,8 @@ from app.db_depends import get_async_db
 from app.models.cart_items import CartItem as CartItemModel
 from app.models.order_items import OrderItem as OrderItemModel
 from app.models.orders import Order as OrderModel
+from app.models.products import Product as ProductModel
 from app.models.users import User as UserModel
-from app.schemas import Order as OrderSchema, OrderList
-
 from app.payments import create_yookassa_payment
 from app.schemas import Order as OrderSchema, OrderCheckoutResponse, OrderList
 
@@ -48,21 +47,29 @@ async def checkout_order(
     Создаёт заказ на основе текущей корзины пользователя.
     Сохраняет позиции заказа, вычитает остатки и очищает корзину.
     """
-    cart_result = await db.execute(
+    cart_result = await db.scalars(
         select(CartItemModel)
-            .options(selectinload(CartItemModel.product))
             .where(CartItemModel.user_id == current_user.id)
             .order_by(CartItemModel.id)
+            .with_for_update()
     )
-    cart_items = list(cart_result.scalars().all())
+    cart_items = list(cart_result.all())
     if not cart_items:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cart is empty")
+
+    product_ids = sorted({item.product_id for item in cart_items})
+    products_result = await db.scalars(
+        select(ProductModel)
+        .where(ProductModel.id.in_(product_ids))
+        .with_for_update()
+    )
+    products = {product.id: product for product in products_result.all()}
 
     order = OrderModel(user_id=current_user.id)
     total_amount = Decimal("0")
 
     for cart_item in cart_items:
-        product = cart_item.product
+        product = products.get(cart_item.product_id)
         if not product or not product.is_active:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -173,18 +180,25 @@ async def get_order(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return order
 
-@router.get("{order_id}/status")
-async def get_status(order_id: int, db:AsyncSession= Depends(get_async_db),current_user: UserModel= Depends(get_current_user)):
+@router.get("/{order_id}/status")
+async def get_status(
+    order_id: int,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: UserModel = Depends(get_current_user),
+):
     result = await db.scalars(
-        select(OrderModel).where(OrderModel.is_active == True,OrderModel.id == order_id,OrderModel.user_id == current_user.id)
+        select(OrderModel).where(
+            OrderModel.id == order_id,
+            OrderModel.user_id == current_user.id,
         )
+    )
     order = result.first()
     if not order:
-        raise HTTPException(status_code=404,detail="Заказ не найден или вы не являетесь его владельцем")
-    
-    return {        
-  "order_id": order.id,
-  "status": order.status,  
-  "paid_at": order.paid_at, 
-  "message": "Заказ #{order.id} {order.status}."
-}
+        raise HTTPException(status_code=404, detail="Заказ не найден или вы не являетесь его владельцем")
+
+    return {
+        "order_id": order.id,
+        "status": order.status,
+        "paid_at": order.paid_at,
+        "message": f"Заказ #{order.id} {order.status}.",
+    }

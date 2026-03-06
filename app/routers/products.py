@@ -1,5 +1,3 @@
-from typing import Literal
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +13,7 @@ from app.auth import get_current_seller
 
 from pathlib import Path
 import uuid
-from fastapi import UploadFile, File, Form, HTTPException, status
+from fastapi import File, UploadFile
 
 
 

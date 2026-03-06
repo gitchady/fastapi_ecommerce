@@ -1,14 +1,14 @@
 import ipaddress
 import json
 from datetime import datetime, timezone
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from yookassa.domain.notification import WebhookNotification 
+from yookassa.domain.notification import WebhookNotification
 
+from app.config import TRUSTED_PROXY_IPS
 from app.db_depends import get_async_db
 from app.models.orders import Order as OrderModel
 
@@ -45,11 +45,38 @@ def is_ip_allowed(ip: str | None) -> bool:
                 return True
     return False
 
+
+def _is_trusted_proxy(ip: str | None) -> bool:
+    if ip is None:
+        return False
+    try:
+        address = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+
+    trusted_ips = TRUSTED_PROXY_IPS or ("127.0.0.1", "::1")
+    for mask in trusted_ips:
+        try:
+            if "/" in mask:
+                if address in ipaddress.ip_network(mask, strict=False):
+                    return True
+            else:
+                if address == ipaddress.ip_address(mask):
+                    return True
+        except ValueError:
+            continue
+    return False
+
+
 def _extract_client_ip(request: Request) -> str | None:
+    remote_ip = request.client.host if request.client else None
+    if not _is_trusted_proxy(remote_ip):
+        return remote_ip
+
     forwarded_for = request.headers.get("x-forwarded-for")
     if forwarded_for:
         return forwarded_for.split(",")[0].strip()
-    return request.client.host if request.client else None
+    return remote_ip
 
 @router.post("/yookassa/webhook", status_code=status.HTTP_200_OK)
 async def yookassa_webhook(
