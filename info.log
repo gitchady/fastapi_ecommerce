@@ -1,0 +1,7 @@
+Log: [90970fa0-1ab1-4628-859a-16a726e3fe01:2026-03-10T09:06:02.713314+0300 - INFO - Successfully accessed /]
+Log: [09e656ca-dcf7-462e-b844-93a8a0a21de4:2026-03-10T09:06:02.865008+0300 - WARNING - Request to /favicon.ico failed]
+Log: [62bdfa7b-fb64-449e-a37d-39c41133d4f5:2026-03-10T09:06:11.017178+0300 - INFO - Successfully accessed /docs]
+Log: [18d87d13-7659-45c4-ba40-b43aacd1e13d:2026-03-10T09:06:16.658674+0300 - INFO - Successfully accessed /openapi.json]
+Log: [d88d7005-e04a-4ad2-8ba3-17733cec28ea:2026-03-10T09:06:27.204492+0300 - INFO - Successfully accessed /categories/]
+Log: [ee9e3cc4-0e6b-424f-a2df-d14541d0977b:2026-03-10T09:06:41.901738+0300 - WARNING - Request to /products/100 failed]
+Log: [bafe1f89-2187-4ada-9b30-42d40f208000:2026-03-10T09:07:00.238454+0300 - WARNING - Request to /fsdfds failed]
