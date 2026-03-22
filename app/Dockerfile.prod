@@ -1,0 +1,29 @@
+FROM tiangolo/uvicorn-gunicorn:python3.11-slim
+
+ENV HOME=/home/fast \
+    APP_HOME=/home/fast/app \
+    PYTHONPATH=/home/fast \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+RUN mkdir -p $APP_HOME \
+ && mkdir -p "$HOME/media/products" \
+ && groupadd -r fast \
+ && useradd -r -g fast -d "$HOME" fast
+
+WORKDIR $HOME
+
+COPY requirements.txt ./
+COPY alembic.ini ./
+
+RUN pip install --upgrade pip \
+ && pip install --no-cache-dir -r requirements.txt
+
+COPY app ./app
+
+RUN chown -R fast:fast "$HOME"
+
+USER fast
+
+EXPOSE 8000
+
