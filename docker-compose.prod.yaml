@@ -1,7 +1,7 @@
 name: fastapi-ecommerce-prod
 services:
   db:
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
     restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -22,14 +22,14 @@ services:
     restart: unless-stopped
     command: >
       sh -c "alembic upgrade head &&
-      gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000"
+      gunicorn app.main:app --workers ${GUNICORN_WORKERS:-4} --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:${APP_PORT:-8000}"
     environment:
       ASYNC_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ecommerce_user}:${POSTGRES_PASSWORD:-1234}@db:5432/${POSTGRES_DB:-ecommerce_db}
     depends_on:
       db:
         condition: service_healthy
     expose:
-      - "8000"
+      - "${APP_PORT:-8000}"
     volumes:
       - ./.env:/home/fast/.env:ro
       - media_data:/home/fast/media
@@ -41,8 +41,13 @@ services:
     restart: unless-stopped
     depends_on:
       - web
+    environment:
+      APP_PORT: ${APP_PORT:-8000}
+      APP_UPSTREAM_HOST: ${APP_UPSTREAM_HOST:-web}
+      NGINX_CLIENT_MAX_BODY_SIZE: ${NGINX_CLIENT_MAX_BODY_SIZE:-20m}
+      NGINX_SERVER_NAME: ${NGINX_SERVER_NAME:-_}
     ports:
-      - "80:80"
+      - "${NGINX_PORT:-80}:80"
     volumes:
       - media_data:/var/www/media:ro
 
