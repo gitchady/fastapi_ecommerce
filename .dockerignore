@@ -9,3 +9,5 @@ __pycache__/
 media
 info.log
 ecommerce.db
+.gitignore
+docker-compose*
