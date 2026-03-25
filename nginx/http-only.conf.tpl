@@ -1,8 +1,15 @@
 server {
     listen 80;
+    listen [::]:80;
     server_name ${NGINX_SERVER_NAME};
 
     client_max_body_size ${NGINX_CLIENT_MAX_BODY_SIZE};
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type "text/plain";
+        try_files $uri =404;
+    }
 
     location /media/ {
         alias /var/www/media/;
@@ -18,6 +25,8 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";

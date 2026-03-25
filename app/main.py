@@ -1,17 +1,17 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-
-from app import models  # noqa: F401
-from app.config import AUTO_CREATE_TABLES
-from app.database import Base, async_engine
-from app.routers import cart, categories, orders, payments, products, reviews, users
-
-from loguru import logger
-from uuid import uuid4
 from fastapi import Request
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from loguru import logger
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+from uuid import uuid4
+
+from app import models  # noqa: F401
+from app.config import AUTO_CREATE_TABLES, TRUSTED_PROXY_IPS
+from app.database import Base, async_engine
+from app.routers import cart, categories, orders, payments, products, reviews, users
 
 
 logger.add("info.log", format="Log: [{extra[log_id]}:{time} - {level} - {message}]", level="INFO", enqueue = True)
@@ -30,6 +30,8 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=TRUSTED_PROXY_IPS or "127.0.0.1,::1")
 
 
 @app.middleware("http")
